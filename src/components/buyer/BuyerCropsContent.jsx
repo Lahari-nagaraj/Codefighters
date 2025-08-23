@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import ApiService from '../../services/api';
+import BiddingModal from './BiddingModal';
 import { 
   Search, 
   Filter,
@@ -11,7 +12,9 @@ import {
   TrendingUp,
   Star,
   Phone,
-  MessageSquare
+  MessageSquare,
+  Gavel,
+  RefreshCw
 } from 'lucide-react';
 
 const BuyerCropsContent = () => {
@@ -25,10 +28,43 @@ const BuyerCropsContent = () => {
     minPrice: '',
     maxPrice: ''
   });
+  const [selectedCrop, setSelectedCrop] = useState(null);
+  const [showBiddingModal, setShowBiddingModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    loadCrops();
+  }, [refreshKey]);
+
+  const loadCrops = () => {
+    setLoading(true);
+    
+    // Load API crops first
     fetchCrops();
-  }, []);
+    
+    // Then load farmer's crops from localStorage
+    const savedCrops = localStorage.getItem('farmerCrops');
+    if (savedCrops) {
+      const farmerCrops = JSON.parse(savedCrops);
+      // Filter only crops that are in auction or listed
+      const availableCrops = farmerCrops.filter(crop => 
+        crop.status === 'In Auction' || crop.status === 'Listed'
+      );
+      
+      // Merge with existing crops, avoiding duplicates
+      setCrops(prevCrops => {
+        const existingIds = new Set(prevCrops.map(c => c.id));
+        const newCrops = availableCrops.filter(crop => !existingIds.has(crop.id));
+        return [...prevCrops, ...newCrops];
+      });
+    }
+    
+    setLoading(false);
+  };
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   const fetchCrops = async () => {
     try {
@@ -45,9 +81,30 @@ const BuyerCropsContent = () => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleCropClick = (crop) => {
+    setSelectedCrop(crop);
+    setShowBiddingModal(true);
+  };
+
+  const handleBidPlaced = (bid) => {
+    // Show success message or update UI
+    console.log('Bid placed successfully:', bid);
+    // Refresh crops to show updated bid count
+    handleRefresh();
+  };
+
+  const handleCloseBiddingModal = () => {
+    setShowBiddingModal(false);
+    setSelectedCrop(null);
+  };
+
   const filteredCrops = crops.filter(crop => {
-    const matchesSearch = crop.cropName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         crop.variety?.toLowerCase().includes(searchTerm.toLowerCase());
+    // Handle both API crops (cropName) and farmer crops (name)
+    const cropName = crop.cropName || crop.name;
+    const variety = crop.variety;
+    
+    const matchesSearch = cropName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         variety?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !filters.category || crop.cropType === filters.category;
     const matchesLocation = !filters.location || crop.location?.toLowerCase().includes(filters.location.toLowerCase());
     const matchesMinPrice = !filters.minPrice || crop.pricePerUnit >= parseFloat(filters.minPrice);
@@ -163,9 +220,19 @@ const BuyerCropsContent = () => {
           <h2 className="text-2xl font-bold text-gray-900">Browse {t('crops')}</h2>
           <p className="text-gray-600">Discover fresh crops directly from verified farmers</p>
         </div>
-        <div className="flex items-center space-x-2 bg-green-100 px-3 py-2 rounded-lg">
-          <TrendingUp className="w-4 h-4 text-green-600" />
-          <span className="text-sm text-green-700">Market trending up 5.2%</span>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="text-sm">Refresh</span>
+          </button>
+          <div className="flex items-center space-x-2 bg-green-100 px-3 py-2 rounded-lg">
+            <TrendingUp className="w-4 h-4 text-green-600" />
+            <span className="text-sm text-green-700">Market trending up 5.2%</span>
+          </div>
         </div>
       </div>
 
@@ -253,33 +320,42 @@ const BuyerCropsContent = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <h3 className="text-sm font-medium text-gray-600">Available Crops</h3>
-          <p className="text-2xl font-bold text-green-600">{displayCrops.length}</p>
+          <p className="text-2xl font-bold text-green-600">{filteredCrops.length}</p>
           <p className="text-sm text-gray-500">In your area</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-sm font-medium text-gray-600">Avg. Price Savings</h3>
-          <p className="text-2xl font-bold text-blue-600">8.5%</p>
-          <p className="text-sm text-gray-500">Below market rate</p>
+          <h3 className="text-sm font-medium text-gray-600">Live Auctions</h3>
+          <p className="text-2xl font-bold text-orange-600">{filteredCrops.filter(c => c.status === 'In Auction').length}</p>
+          <p className="text-sm text-gray-500">Active now</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-sm font-medium text-gray-600">Verified Farmers</h3>
-          <p className="text-2xl font-bold text-purple-600">156</p>
-          <p className="text-sm text-gray-500">In network</p>
+          <h3 className="text-sm font-medium text-gray-600">Total Bids</h3>
+          <p className="text-2xl font-bold text-purple-600">{filteredCrops.reduce((sum, c) => sum + (c.bids || 0), 0)}</p>
+          <p className="text-sm text-gray-500">Across all crops</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <h3 className="text-sm font-medium text-gray-600">Fresh Listings</h3>
-          <p className="text-2xl font-bold text-orange-600">23</p>
+          <p className="text-2xl font-bold text-blue-600">{filteredCrops.filter(c => {
+            const today = new Date();
+            const listedDate = new Date(c.listedDate);
+            return today.toDateString() === listedDate.toDateString();
+          }).length}</p>
           <p className="text-sm text-gray-500">Added today</p>
         </div>
       </div>
 
       {/* Crops Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayCrops.map((crop) => {
+        {filteredCrops.map((crop) => {
           const priceStatus = getPriceStatus(crop.pricePerUnit, crop.msp);
+          const cropName = crop.cropName || crop.name;
           
           return (
-            <div key={crop.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+            <div 
+              key={crop.id} 
+              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => handleCropClick(crop)}
+            >
               <div className="relative h-48">
                 <img
                   src={crop.image}
@@ -287,14 +363,24 @@ const BuyerCropsContent = () => {
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute top-4 left-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getQualityColor(crop.quality)}`}>
-                    {crop.quality}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getQualityColor(crop.quality || 'Standard')}`}>
+                    {crop.quality || 'Standard'}
                   </span>
                 </div>
                 <div className="absolute top-4 right-4 flex space-x-1">
+                  {crop.status === 'In Auction' && (
+                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
+                      Live Auction
+                    </span>
+                  )}
                   {crop.organic && (
                     <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
                       Organic
+                    </span>
+                  )}
+                  {crop.bids > 0 && (
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                      {crop.bids} bids
                     </span>
                   )}
                 </div>
@@ -306,7 +392,7 @@ const BuyerCropsContent = () => {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{crop.cropName}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{cropName}</h3>
                     <p className="text-sm text-gray-600">{crop.variety}</p>
                   </div>
                   <div className="text-right">
@@ -328,7 +414,7 @@ const BuyerCropsContent = () => {
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center text-gray-600">
                       <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
-                      {crop.farmerRating} • {crop.farmerName}
+                      {crop.farmerRating || 4.5} • {crop.farmerName || 'Verified Farmer'}
                     </div>
                     <div className="flex items-center text-gray-500">
                       <Calendar className="w-4 h-4 mr-1" />
@@ -337,15 +423,31 @@ const BuyerCropsContent = () => {
                   </div>
                 </div>
 
-                <div className="flex space-x-2">
-                  <button className="flex-1 flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={() => handleCropClick(crop)}
+                    className="flex-1 flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                  >
                     <Eye className="w-4 h-4 mr-1" />
                     {t('view')}
                   </button>
-                  <button className="flex-1 flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
-                    <ShoppingCart className="w-4 h-4 mr-1" />
-                    Buy Now
-                  </button>
+                  {crop.status === 'In Auction' ? (
+                    <button 
+                      onClick={() => handleCropClick(crop)}
+                      className="flex-1 flex items-center justify-center px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+                    >
+                      <Gavel className="w-4 h-4 mr-1" />
+                      Place Bid
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => handleCropClick(crop)}
+                      className="flex-1 flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      <ShoppingCart className="w-4 h-4 mr-1" />
+                      Buy Now
+                    </button>
+                  )}
                 </div>
                 
                 <div className="flex justify-center space-x-4 mt-3 pt-3 border-t border-gray-200">
@@ -364,22 +466,30 @@ const BuyerCropsContent = () => {
         })}
       </div>
 
-      {displayCrops.length === 0 && !loading && (
+      {filteredCrops.length === 0 && !loading && (
         <div className="text-center py-12">
           <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
             <Search className="w-8 h-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No crops found</h3>
           <p className="text-gray-600 mb-4">Try adjusting your search criteria or filters</p>
-          <button
-            onClick={() => {
-              setSearchTerm('');
-              setFilters({ category: '', location: '', minPrice: '', maxPrice: '' });
-            }}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-          >
-            Clear Filters
-          </button>
+          <div className="flex space-x-3 justify-center">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFilters({ category: '', location: '', minPrice: '', maxPrice: '' });
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              Clear Filters
+            </button>
+            <button
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
       )}
 
@@ -413,6 +523,14 @@ const BuyerCropsContent = () => {
           </div>
         </div>
       </div>
+
+      {/* Bidding Modal */}
+      <BiddingModal
+        crop={selectedCrop}
+        isOpen={showBiddingModal}
+        onClose={handleCloseBiddingModal}
+        onBidPlaced={handleBidPlaced}
+      />
     </div>
   );
 };

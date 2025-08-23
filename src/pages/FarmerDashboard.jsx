@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useLocation } from "react-router-dom";
 import Sidebar from "../components/common/Sidebar";
 import Header from "../components/common/Header";
 import DashboardContent from "../components/farmer/DashboardContent";
@@ -10,10 +11,10 @@ import AuctionsContent from "../components/farmer/AuctionsContent";
 import SchemesContent from "../components/farmer/SchemesContent";
 import WeatherContent from "../components/farmer/WeatherContent";
 import NewsContent from "../components/farmer/NewsContent";
-
 const FarmerDashboard = () => {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const renderContent = () => {
@@ -36,6 +37,16 @@ const FarmerDashboard = () => {
         return <DashboardContent onTabChange={setActiveTab} />;
     }
   };
+
+  // Check if we need to show auctions tab from navigation state
+  useEffect(() => {
+    const state = location.state;
+    if (state?.showAuctions) {
+      setActiveTab('auctions');
+      // Clear the state to prevent showing auctions on every render
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   return (
     <div className="flex h-screen bg-gray-50">

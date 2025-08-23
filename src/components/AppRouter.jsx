@@ -93,6 +93,7 @@ const AppRouter = () => {
             </ProtectedRoute>
           } 
         />
+        
         <Route 
           path="/buyer" 
           element={

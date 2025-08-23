@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { 
@@ -15,13 +15,39 @@ import {
 const DashboardContent = ({ onTabChange }) => {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const [cropsCount, setCropsCount] = useState(3); // Default count
+
+  // Read crops count from localStorage
+  useEffect(() => {
+    const updateCropsCount = () => {
+      const savedCrops = localStorage.getItem('farmerCrops');
+      if (savedCrops) {
+        const crops = JSON.parse(savedCrops);
+        setCropsCount(crops.length);
+      }
+    };
+
+    // Initial load
+    updateCropsCount();
+
+    // Listen for storage changes
+    window.addEventListener('storage', updateCropsCount);
+    
+    // Also check periodically for changes
+    const interval = setInterval(updateCropsCount, 1000);
+
+    return () => {
+      window.removeEventListener('storage', updateCropsCount);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Dynamic stats based on user data (starting with zero)
   const stats = [
     {
       title: t('totalCrops'),
-      value: user?.totalCrops || '0',
-      change: '+0 this month',
+      value: cropsCount.toString(),
+      change: `+${cropsCount - 3} this week`,
       icon: Wheat,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
