@@ -3,6 +3,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signInWithPhoneNumber,
   signOut,
   RecaptchaVerifier,
@@ -167,6 +169,147 @@ export const AuthProvider = ({ children }) => {
   };
 
   // --------------------------------------------------
+  // Email/Password Sign Up
+  // --------------------------------------------------
+  const signUp = async (email, password, name, phone = "", role = DEFAULT_ROLE) => {
+    try {
+      setError(null);
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      const fbUser = result.user;
+
+      // Update display name
+      await fbUser.updateProfile({
+        displayName: name
+      });
+
+      const ref = doc(db, "users", fbUser.uid);
+      const userData = {
+        uid: fbUser.uid,
+        email: fbUser.email ?? "",
+        name: name,
+        phone: phone,
+        role,
+        credits: DEFAULT_CREDITS,
+        createdAt: serverTimestamp(),
+        isActive: true,
+      };
+
+      await setDoc(ref, userData);
+
+      // Sync with backend if available
+      try {
+        await ApiService?.registerUser?.(userData);
+      } catch (err) {
+        console.warn("Backend sync skipped:", err?.message);
+      }
+
+      setUser({
+        ...userData,
+        displayName: name,
+        photoURL: fbUser.photoURL,
+      });
+
+      return { ok: true, role };
+    } catch (e) {
+      console.error("Email signup failed:", e);
+      
+      // Provide user-friendly error messages
+      let errorMessage = "Sign up failed. Please try again.";
+      
+      if (e.code === 'auth/email-already-in-use') {
+        errorMessage = "An account with this email already exists. Please sign in instead.";
+      } else if (e.code === 'auth/weak-password') {
+        errorMessage = "Password is too weak. Please choose a stronger password.";
+      } else if (e.code === 'auth/invalid-email') {
+        errorMessage = "Please enter a valid email address.";
+      } else if (e.message) {
+        errorMessage = e.message;
+      }
+      
+      setError(errorMessage);
+      return { ok: false, error: errorMessage };
+    }
+  };
+
+  // --------------------------------------------------
+  // Email/Password Sign In
+  // --------------------------------------------------
+  const signInWithEmail = async (email, password, role = DEFAULT_ROLE) => {
+    try {
+      setError(null);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const fbUser = result.user;
+
+      const ref = doc(db, "users", fbUser.uid);
+      const snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        const existing = snap.data();
+
+        // Update role if it changed
+        if (existing.role !== role) {
+          await setDoc(ref, { role }, { merge: true });
+          try {
+            await ApiService?.updateUserProfile?.(fbUser.uid, { role });
+          } catch (err) {
+            console.warn("Backend role update skipped:", err?.message);
+          }
+        }
+
+        setUser({
+          uid: fbUser.uid,
+          email: fbUser.email,
+          displayName: fbUser.displayName,
+          photoURL: fbUser.photoURL,
+          ...existing,
+          role,
+        });
+      } else {
+        // User exists in Firebase but not in Firestore (edge case)
+        const userData = {
+          uid: fbUser.uid,
+          email: fbUser.email ?? "",
+          name: fbUser.displayName || "User",
+          phone: fbUser.phoneNumber || "",
+          role,
+          credits: DEFAULT_CREDITS,
+          createdAt: serverTimestamp(),
+          isActive: true,
+        };
+
+        await setDoc(ref, userData);
+        setUser({
+          ...userData,
+          displayName: fbUser.displayName,
+          photoURL: fbUser.photoURL,
+        });
+      }
+
+      return { ok: true, role };
+    } catch (e) {
+      console.error("Email signin failed:", e);
+      
+      // Provide user-friendly error messages
+      let errorMessage = "Sign in failed. Please try again.";
+      
+      if (e.code === 'auth/user-not-found') {
+        errorMessage = "No account found with this email. Please sign up instead.";
+      } else if (e.code === 'auth/wrong-password') {
+        errorMessage = "Incorrect password. Please try again.";
+      } else if (e.code === 'auth/invalid-email') {
+        errorMessage = "Please enter a valid email address.";
+      } else if (e.code === 'auth/too-many-requests') {
+        errorMessage = "Too many failed attempts. Please try again later.";
+      } else if (e.message) {
+        errorMessage = e.message;
+      }
+      
+      setError(errorMessage);
+      return { ok: false, error: errorMessage };
+    }
+  };
+
+  // --------------------------------------------------
   // Phone Authentication
   // --------------------------------------------------
   const signInWithPhone = async (phoneNumber, appVerifier) => {
@@ -222,11 +365,14 @@ export const AuthProvider = ({ children }) => {
         loading,
         error,
         login,
+        signUp,
+        signInWithEmail,
         logout,
         signInWithPhone,
         setupRecaptcha,
         updateUserRole,
         updateUserProfile,
+        clearError: () => setError(null),
       }}
     >
       {children}

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev:client": "npm run client",
+    "dev:server": "npm run server",
     "client": "vite",
     "server": "nodemon server/index.js",
     "build": "vite build",

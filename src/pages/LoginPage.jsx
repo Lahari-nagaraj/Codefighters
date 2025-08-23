@@ -1,7 +1,6 @@
 // src/pages/LoginPage.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { ShoppingCart, Shield, Truck, Users, Wheat, Globe } from "lucide-react";
 
@@ -14,7 +13,6 @@ const ROLE_ROUTES = {
 };
 
 const LoginPage = () => {
-  const { login } = useAuth();
   const navigate = useNavigate();
   const { t, changeLanguage, languages, currentLanguage } = useLanguage();
 
@@ -53,9 +51,9 @@ const LoginPage = () => {
     },
   ]; // 👆 Admin removed from public page
 
-  const handleRoleClick = async (roleId) => {
-    const res = await login(roleId);
-    if (res?.ok) navigate(ROLE_ROUTES[roleId] || "/");
+  const handleRoleClick = (roleId) => {
+    // Navigate to auth page with the selected role
+    navigate('/auth', { state: { role: roleId } });
   };
 
   return (
@@ -129,39 +127,39 @@ const LoginPage = () => {
               );
             })}
           </div>
-        </div>
 
-        {/* Features */}
-        <div className="bg-gray-50 px-8 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-            <div>
-              <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Wheat className="w-6 h-6 text-green-600" />
+          {/* Features */}
+          <div className="bg-gray-50 px-8 py-6 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+              <div>
+                <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Wheat className="w-6 h-6 text-green-600" />
+                </div>
+                <h4 className="font-medium text-gray-900 mb-1">Fair Pricing</h4>
+                <p className="text-sm text-gray-600">
+                  MSP comparison & dynamic pricing
+                </p>
               </div>
-              <h4 className="font-medium text-gray-900 mb-1">Fair Pricing</h4>
-              <p className="text-sm text-gray-600">
-                MSP comparison & dynamic pricing
-              </p>
-            </div>
-            <div>
-              <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Globe className="w-6 h-6 text-blue-600" />
+              <div>
+                <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Globe className="w-6 h-6 text-blue-600" />
+                </div>
+                <h4 className="font-medium text-gray-900 mb-1">Direct Connect</h4>
+                <p className="text-sm text-gray-600">
+                  Farmers directly connect with buyers
+                </p>
               </div>
-              <h4 className="font-medium text-gray-900 mb-1">Direct Connect</h4>
-              <p className="text-sm text-gray-600">
-                Farmers directly connect with buyers
-              </p>
-            </div>
-            <div>
-              <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Shield className="w-6 h-6 text-purple-600" />
+              <div>
+                <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Shield className="w-6 h-6 text-purple-600" />
+                </div>
+                <h4 className="font-medium text-gray-900 mb-1">
+                  Secure Platform
+                </h4>
+                <p className="text-sm text-gray-600">
+                  Government backed & verified
+                </p>
               </div>
-              <h4 className="font-medium text-gray-900 mb-1">
-                Secure Platform
-              </h4>
-              <p className="text-sm text-gray-600">
-                Government backed & verified
-              </p>
             </div>
           </div>
         </div>
