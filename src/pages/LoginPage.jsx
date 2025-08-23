@@ -2,7 +2,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "../contexts/LanguageContext";
-import { ShoppingCart, Shield, Truck, Users, Wheat, Globe } from "lucide-react";
+import { ShoppingCart, Shield, Truck, Users, Wheat, Globe, MessageCircle } from "lucide-react";
 
 const ROLE_ROUTES = {
   farmer: "/farmer",
@@ -56,8 +56,23 @@ const LoginPage = () => {
     navigate('/auth', { state: { role: roleId } });
   };
 
+  const handleChatSupport = () => {
+    navigate('/chat');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4 relative">
+      {/* Movable Chat Support Button - Bottom Right */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={handleChatSupport}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center space-x-2"
+        >
+          <MessageCircle className="w-5 h-5" />
+          <span className="font-medium">Chat Support</span>
+        </button>
+      </div>
+
       <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-blue-600 px-8 py-6 text-white">

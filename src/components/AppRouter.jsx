@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { useAuth } from "../contexts/AuthContext";
 import LoginPage from "../pages/LoginPage";
 import AuthPage from "../pages/AuthPage";
+import ChatPage from "../pages/ChatPage";
 import AdminDashboard from "../pages/AdminDashboard";
 import FarmerDashboard from "../pages/FarmerDashboard";
 import BuyerDashboard from "../pages/BuyerDashboard";
@@ -29,6 +30,21 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   return children;
 };
 
+// Public Route Component (redirects if user is already logged in)
+const PublicRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (user) {
+    return <Navigate to={`/${user.role}`} replace />;
+  }
+
+  return children;
+};
+
 const AppRouter = () => {
   const { user, loading } = useAuth();
 
@@ -39,9 +55,26 @@ const AppRouter = () => {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={!user ? <LoginPage /> : <Navigate to={`/${user.role}`} replace />} />
-        <Route path="/auth" element={!user ? <AuthPage /> : <Navigate to={`/${user.role}`} replace />} />
+        {/* Public Routes - redirect to dashboard if already logged in */}
+        <Route 
+          path="/" 
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          } 
+        />
+        <Route 
+          path="/auth" 
+          element={
+            <PublicRoute>
+              <AuthPage />
+            </PublicRoute>
+          } 
+        />
+        
+        {/* Chat Support Route - accessible to everyone */}
+        <Route path="/chat" element={<ChatPage />} />
         
         {/* Protected Dashboard Routes */}
         <Route 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { 
   TrendingUp, 
@@ -11,37 +12,39 @@ import {
   Calendar
 } from 'lucide-react';
 
-const DashboardContent = () => {
+const DashboardContent = ({ onTabChange }) => {
+  const { user } = useAuth();
   const { t } = useLanguage();
 
+  // Dynamic stats based on user data (starting with zero)
   const stats = [
     {
       title: t('totalCrops'),
-      value: '12',
-      change: '+2 this month',
+      value: user?.totalCrops || '0',
+      change: '+0 this month',
       icon: Wheat,
       color: 'text-green-600',
       bgColor: 'bg-green-100'
     },
     {
       title: t('activeAuctions'),
-      value: '5',
-      change: '3 ending soon',
+      value: user?.activeAuctions || '0',
+      change: '0 ending soon',
       icon: Gavel,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100'
     },
     {
       title: t('earnings'),
-      value: '₹2,45,000',
-      change: '+15% from last month',
+      value: `₹${user?.totalEarnings || '0'}`,
+      change: '+0% from last month',
       icon: IndianRupee,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100'
     },
     {
       title: 'Market Price Alert',
-      value: '3 crops',
+      value: `${user?.marketPriceAlerts || '0'} crops`,
       change: 'Above MSP today',
       icon: TrendingUp,
       color: 'text-orange-600',
@@ -49,13 +52,12 @@ const DashboardContent = () => {
     }
   ];
 
-  const recentActivity = [
-    { type: 'auction', crop: 'Wheat', status: 'Won', amount: '₹2,100/quintal', time: '2 hours ago' },
-    { type: 'listing', crop: 'Rice', status: 'Active', amount: '₹1,850/quintal', time: '5 hours ago' },
-    { type: 'equipment', crop: 'Tractor Rental', status: 'Booked', amount: '₹800/day', time: '1 day ago' },
-    { type: 'scheme', crop: 'PM-KISAN', status: 'Applied', amount: '₹2,000', time: '2 days ago' }
+  // Dynamic recent activity based on user data
+  const recentActivity = user?.recentActivity || [
+    { type: 'welcome', message: 'Welcome to Agrastra! Start by adding your first crop.', time: 'Just now' }
   ];
 
+  // Market prices with MSP (keeping same for now as requested)
   const marketPrices = [
     { crop: 'Wheat', msp: '₹2,125', market: '₹2,240', trend: 'up' },
     { crop: 'Rice', msp: '₹1,940', market: '₹1,890', trend: 'down' },
@@ -63,12 +65,31 @@ const DashboardContent = () => {
     { crop: 'Cotton', msp: '₹5,515', market: '₹5,680', trend: 'up' }
   ];
 
+  // Navigation functions
+  const navigateToCrops = () => {
+    if (onTabChange) {
+      onTabChange('crops');
+    }
+  };
+
+  const navigateToAuctions = () => {
+    if (onTabChange) {
+      onTabChange('auctions');
+    }
+  };
+
+  const navigateToSchemes = () => {
+    if (onTabChange) {
+      onTabChange('schemes');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6 text-white">
         <h2 className="text-2xl font-bold mb-2">
-          {t('welcome')}, Rajesh! 🌾
+          {t('welcome')}, {user?.name || 'Farmer'}! 🌾
         </h2>
         <p className="text-green-100">
           Today's weather: 28°C, Sunny ☀️ • Best time for harvesting
@@ -131,23 +152,34 @@ const DashboardContent = () => {
             Recent Activity
           </h3>
           <div className="space-y-4">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-center space-x-3">
-                <div className={`w-2 h-2 rounded-full ${
-                  activity.status === 'Won' ? 'bg-green-500' :
-                  activity.status === 'Active' ? 'bg-blue-500' :
-                  activity.status === 'Booked' ? 'bg-purple-500' :
-                  'bg-orange-500'
-                }`}></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900">
-                    {activity.crop} - {activity.status}
-                  </p>
-                  <p className="text-sm text-gray-600">{activity.amount}</p>
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center space-x-3">
+                  <div className={`w-2 h-2 rounded-full ${
+                    activity.type === 'auction' ? 'bg-green-500' :
+                    activity.type === 'listing' ? 'bg-blue-500' :
+                    activity.type === 'equipment' ? 'bg-purple-500' :
+                    activity.type === 'scheme' ? 'bg-orange-500' :
+                    'bg-gray-500'
+                  }`}></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">
+                      {activity.type === 'welcome' ? activity.message : 
+                       `${activity.crop} - ${activity.status}`}
+                    </p>
+                    {activity.amount && (
+                      <p className="text-sm text-gray-600">{activity.amount}</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">{activity.time}</p>
                 </div>
-                <p className="text-xs text-gray-500">{activity.time}</p>
+              ))
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <p>No recent activity</p>
+                <p className="text-sm">Start by adding your first crop!</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
@@ -158,7 +190,10 @@ const DashboardContent = () => {
           <Wheat className="w-8 h-8 text-green-600 mx-auto mb-3" />
           <h4 className="font-semibold text-green-900 mb-2">List New Crop</h4>
           <p className="text-sm text-green-700 mb-4">Add your harvest to the marketplace</p>
-          <button className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+          <button 
+            onClick={navigateToCrops}
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
+          >
             {t('addCrop')}
           </button>
         </div>
@@ -167,16 +202,22 @@ const DashboardContent = () => {
           <Gavel className="w-8 h-8 text-blue-600 mx-auto mb-3" />
           <h4 className="font-semibold text-blue-900 mb-2">Join Auctions</h4>
           <p className="text-sm text-blue-700 mb-4">Participate in live crop auctions</p>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+          <button 
+            onClick={navigateToAuctions}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
             View {t('auctions')}
           </button>
         </div>
 
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-6 text-center">
           <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-3" />
-          <h4 className="font-semibold text-purple-900 mb-2">Government Schemes</h4>
+          <h4 className="text-lg font-semibold text-purple-900 mb-2">Government Schemes</h4>
           <p className="text-sm text-purple-700 mb-4">Apply for subsidies and benefits</p>
-          <button className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
+          <button 
+            onClick={navigateToSchemes}
+            className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
+          >
             Explore {t('schemes')}
           </button>
         </div>

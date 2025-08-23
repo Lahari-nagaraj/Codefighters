@@ -42,6 +42,8 @@ const translations = {
     activeAuctions: 'Active Auctions',
     earnings: 'Total Earnings',
     credits: 'Credits',
+    totalEarnings: 'Total Earnings',
+    marketPriceAlerts: 'Market Price Alerts',
     
     // Crops
     addCrop: 'Add New Crop',
@@ -57,7 +59,11 @@ const translations = {
     edit: 'Edit',
     delete: 'Delete',
     view: 'View',
-    bid: 'Place Bid'
+    bid: 'Place Bid',
+    // Actions
+    addCrop: 'Add Crop',
+    viewAuctions: 'View Auctions',
+    exploreSchemes: 'Explore Schemes'
   },
   hi: {
     // Common
@@ -90,6 +96,8 @@ const translations = {
     activeAuctions: 'सक्रिय नीलामी',
     earnings: 'कुल कमाई',
     credits: 'क्रेडिट्स',
+    totalEarnings: 'कुल कमाई',
+    marketPriceAlerts: 'बाजार मूल्य अलर्ट',
     
     // Crops
     addCrop: 'नई फसल जोड़ें',
@@ -105,7 +113,11 @@ const translations = {
     edit: 'संपादित करें',
     delete: 'मिटाएं',
     view: 'देखें',
-    bid: 'बोली लगाएं'
+    bid: 'बोली लगाएं',
+    // Actions
+    addCrop: 'नई फसल जोड़ें',
+    viewAuctions: 'नीलामी देखें',
+    exploreSchemes: 'सरकारी योजनाएं खोजें'
   },
   kn: {
     // Common
@@ -138,6 +150,8 @@ const translations = {
     activeAuctions: 'ಸಕ್ರಿಯ ಹರಾಜುಗಳು',
     earnings: 'ಒಟ್ಟು ಗಳಿಕೆ',
     credits: 'ಕ್ರೆಡಿಟ್‌ಗಳು',
+    totalEarnings: 'ಒಟ್ಟು ಗಳಿಕೆ',
+    marketPriceAlerts: 'ಮಾರುಕಟ್ಟೆ ಬೆಲೆ ಎಚ್ಚರಿಕೆಗಳು',
     
     // Crops
     addCrop: 'ಹೊಸ ಬೆಳೆ ಸೇರಿಸಿ',
@@ -153,7 +167,11 @@ const translations = {
     edit: 'ಸಂಪಾದಿಸಿ',
     delete: 'ಅಳಿಸಿ',
     view: 'ನೋಡಿ',
-    bid: 'ಬಿಡ್ ಮಾಡಿ'
+    bid: 'ಬಿಡ್ ಮಾಡಿ',
+    // Actions
+    addCrop: 'ಹೊಸ ಬೆಳೆ ಸೇರಿಸಿ',
+    viewAuctions: 'ಹರಾಜುಗಳನ್ನು ನೋಡಿ',
+    exploreSchemes: 'ಯೋಜನೆಗಳನ್ನು ಅನುಸರಿಸಿ'
   }
 };
 

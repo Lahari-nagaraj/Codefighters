@@ -40,6 +40,13 @@ export const AuthProvider = ({ children }) => {
   // Sync Firebase Auth with Firestore Profile
   // --------------------------------------------------
   useEffect(() => {
+    // Check if Firebase is properly initialized
+    if (!auth || !db) {
+      console.warn("⚠️ Firebase not initialized, skipping auth state listener");
+      setLoading(false);
+      return;
+    }
+
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       setLoading(true);
       try {
@@ -107,8 +114,18 @@ export const AuthProvider = ({ children }) => {
   const login = async (role = DEFAULT_ROLE) => {
     try {
       setError(null);
+      
+      // Check if Firebase is properly initialized
+      if (!auth || !googleProvider) {
+        throw new Error("Firebase authentication not available. Please check your configuration.");
+      }
+
       const result = await signInWithPopup(auth, googleProvider);
       const fbUser = result.user;
+
+      if (!db) {
+        throw new Error("Firestore database not available. Please check your configuration.");
+      }
 
       const ref = doc(db, "users", fbUser.uid);
       const snap = await getDoc(ref);
@@ -174,6 +191,12 @@ export const AuthProvider = ({ children }) => {
   const signUp = async (email, password, name, phone = "", role = DEFAULT_ROLE) => {
     try {
       setError(null);
+      
+      // Check if Firebase is properly initialized
+      if (!auth) {
+        throw new Error("Firebase authentication not available. Please check your configuration.");
+      }
+
       const result = await createUserWithEmailAndPassword(auth, email, password);
       const fbUser = result.user;
 
@@ -181,6 +204,10 @@ export const AuthProvider = ({ children }) => {
       await fbUser.updateProfile({
         displayName: name
       });
+
+      if (!db) {
+        throw new Error("Firestore database not available. Please check your configuration.");
+      }
 
       const ref = doc(db, "users", fbUser.uid);
       const userData = {
@@ -237,8 +264,18 @@ export const AuthProvider = ({ children }) => {
   const signInWithEmail = async (email, password, role = DEFAULT_ROLE) => {
     try {
       setError(null);
+      
+      // Check if Firebase is properly initialized
+      if (!auth) {
+        throw new Error("Firebase authentication not available. Please check your configuration.");
+      }
+
       const result = await signInWithEmailAndPassword(auth, email, password);
       const fbUser = result.user;
+
+      if (!db) {
+        throw new Error("Firestore database not available. Please check your configuration.");
+      }
 
       const ref = doc(db, "users", fbUser.uid);
       const snap = await getDoc(ref);

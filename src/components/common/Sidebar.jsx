@@ -8,7 +8,6 @@ import {
   FileText,
   CloudRain,
   Newspaper,
-  MessageCircle,
   Users,
   Settings
 } from 'lucide-react';
@@ -19,7 +18,6 @@ const Sidebar = ({ activeTab, onTabChange, userRole }) => {
   const getMenuItems = () => {
     const common = [
       { id: 'dashboard', label: t('dashboard'), icon: BarChart3 },
-      { id: 'chat', label: t('chat'), icon: MessageCircle },
     ];
 
     const roleSpecific = {
