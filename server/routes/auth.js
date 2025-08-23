@@ -1,5 +1,5 @@
 import express from 'express';
-import { collection, addDoc, doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../index.js';
 
 const router = express.Router();
@@ -7,16 +7,20 @@ const router = express.Router();
 // Register user
 router.post('/register', async (req, res) => {
   try {
-    const { uid, email, name, phone, role } = req.body;
+    const { uid, email, name, phone } = req.body;
+
+    if (!uid || !email) {
+      return res.status(400).json({ message: "UID and Email are required" });
+    }
 
     const userData = {
       uid,
       email,
-      name,
-      phone,
-      role: role || 'farmer',
-      credits: role === 'admin' ? 1000 : 50,
-      createdAt: new Date(),
+      name: name || "",
+      phone: phone || "",
+      role: "farmer",   // enforce default role
+      credits: 50,      // safe default
+      createdAt: serverTimestamp(),
       isActive: true
     };
 
@@ -52,20 +56,24 @@ router.get('/profile/:uid', async (req, res) => {
   }
 });
 
-// Update user profile
+// Update user profile (only safe fields)
 router.put('/profile/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
+    const { name, phone } = req.body;
+
     const updateData = {
-      ...req.body,
-      updatedAt: new Date()
+      ...(name && { name }),
+      ...(phone && { phone }),
+      updatedAt: serverTimestamp()
     };
 
     await setDoc(doc(db, 'users', uid), updateData, { merge: true });
 
     res.json({
       success: true,
-      message: 'Profile updated successfully'
+      message: 'Profile updated successfully',
+      updatedFields: updateData
     });
   } catch (error) {
     console.error('Profile update error:', error);
